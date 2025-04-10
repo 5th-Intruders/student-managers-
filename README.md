@@ -45,11 +45,6 @@ Default credentials for demo:
 - Paid students are automatically converted to "unpaid" status after 31 days
 - Notifications trigger for important student status changes
 
-## 🛠️ Installation & Setup
-
-1. Clone this repository
-2. No build process required - open `index.html` in your browser
-3. For development, consider using a local server like Live Server in VS Code
 
 ## 📊 Firebase Usage
 
@@ -71,9 +66,9 @@ See the [documentation](documentantion.html) for full pricing and details.
 
 ## 👥 Authors
 
-- **Kartik Shukla** - Database & JavaScript Development
-- **Yuvraj** - HTML, CSS & JavaScript Development
+- **Kartik Shukla** - Html, Css, Database, bugs, Devlopment, Testing & JavaScript Development
+- **Yuvraj** - HTML, CSS & Markting 
 
 ## 📞 Contact
 
-For custom implementations or questions: white.devil.94484@gmail.com
+For custom implementations or questions: yuvrkart@gmail.com
