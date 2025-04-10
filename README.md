@@ -3,6 +3,7 @@
 A web-based student management system for coaching institutes, built with HTML, CSS, JavaScript, and Firebase.
 
 ![Student Manager Screenshot](https://i.postimg.cc/KvHNjCKD/gmail-logo.jpg)
+## Get Trial here - https://student-managers.vercel.app/
 
 ## 🚀 Features
 
