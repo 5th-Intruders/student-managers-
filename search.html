@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Filter Dashboard</title>
+ <link href="search.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/fontawesome.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/brands.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/solid.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2>Student Filter Dashboard</h2>
+    </header>
+    
+    <div class="filter-controls">
+      <select id="fieldSelector">
+        <option value="name">Name</option>
+        <option value="status">Status</option>
+        <option value="class">Class</option>
+        <option value="timing">Timing</option>
+        <option value="fee">Fee</option>
+        <option value="subject">Subject</option>
+      </select>
+      
+      <input type="text" id="filterValue" placeholder="Enter value">
+      <button id="addFilterBtn">Add Filter</button>
+    </div>
+    
+    <div id="activeFilters"></div>
+    
+    <div id="errorMessage" class="error-message"></div>
+    
+    <h3 id="resultCount">Total: 0 results</h3>
+    
+    <div class="loading" id="loadingIndicator">
+      Loading data...
+    </div>
+    
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Class</th>
+            <th>Timing</th>
+            <th>Fee</th>
+            <th>Subject</th>
+            <th>Last Paid</th>
+            <th>Contact</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="resultTable"></tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Student</h3>
+        <span class="close">&times;</span>
+      </div>
+      
+      <div id="modalErrorMessage" class="error-message"></div>
+      
+      <form id="editForm">
+        <input type="hidden" id="editStudentId">
+        
+        <div class="form-group">
+          <label for="editName">Name</label>
+          <input type="text" id="editName" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editStatus">Status</label>
+          <select id="editStatus">
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="demo">demo</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="editClass">Class</label>
+          <input type="text" id="editClass" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editTiming">Timing</label>
+          <input type="text" id="editTiming">
+        </div>
+        
+        <div class="form-group">
+          <label for="editFee">Fee</label>
+          <input type="number" id="editFee">
+        </div>
+        
+        <div class="form-group">
+          <label for="editSubject">Subject</label>
+          <input type="text" id="editSubject">
+        </div>
+        
+        <div class="form-group">
+          <label for="editContact">Contact Number</label>
+          <input type="tel" id="editContact" pattern="[0-9]{10}">
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" id="cancelEdit" class="btn-cancel">Cancel</button>
+          <button type="submit" class="btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
+      authDomain: "admin-database-ca73d.firebaseapp.com",
+      projectId: "admin-database-ca73d",
+      storageBucket: "admin-database-ca73d.firebasestorage.app",
+      messagingSenderId: "796828178511",
+      appId: "1:796828178511:web:1695f31e505d391d38723a"
+    };
+
+    // Initialize Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+      let filters = [];
+      let currentStudents = []; // Store current results for edit functionality
+      
+      // DOM Elements
+      const errorMessage = document.getElementById('errorMessage');
+      const modalErrorMessage = document.getElementById('modalErrorMessage');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const editModal = document.getElementById('editModal');
+      const closeModalBtn = document.querySelector('.close');
+      const cancelEditBtn = document.getElementById('cancelEdit');
+      const editForm = document.getElementById('editForm');
+      
+      // Event Listeners
+      document.getElementById('addFilterBtn').addEventListener('click', addFilter);
+      document.getElementById('filterValue').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addFilter();
+      });
+      
+      // Modal event listeners
+      closeModalBtn.addEventListener('click', closeModal);
+      cancelEditBtn.addEventListener('click', closeModal);
+      
+      // Close modal when clicking outside the modal content
+      window.addEventListener('click', function(event) {
+        if (event.target === editModal) {
+          closeModal();
+        }
+      });
+      
+      // Form submit event
+      editForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveChanges();
+      });
+      
+      // Functions
+      function showError(message, element = errorMessage) {
+        element.textContent = message;
+        element.style.display = 'block';
+        
+        // Add animation effect - remove first if exists
+        element.classList.remove('slideInLeft');
+        void element.offsetWidth; // Trigger reflow
+        element.classList.add('slideInLeft');
+        
+        setTimeout(() => {
+          element.style.opacity = '0';
+          setTimeout(() => {
+            element.style.display = 'none';
+            element.style.opacity = '1';
+          }, 300);
+        }, 5000);
+      }
+      
+      function showLoading(show = true) {
+        loadingIndicator.style.display = show ? 'block' : 'none';
+      }
+      
+      function addFilter() {
+        const field = document.getElementById('fieldSelector').value;
+        const value = document.getElementById('filterValue').value.trim();
+        
+        if (!value) {
+          return showError("Filter value cannot be empty!");
+        }
+        
+        filters.push({ field, value });
+        updateFilterChips();
+        fetchResults();
+        document.getElementById('filterValue').value = '';
+        
+        // Visual feedback
+        const btn = document.getElementById('addFilterBtn');
+        btn.classList.add('active');
+        setTimeout(() => {
+          btn.classList.remove('active');
+        }, 200);
+      }
+      
+      function removeFilter(index) {
+        filters.splice(index, 1);
+        updateFilterChips();
+        fetchResults();
+      }
+      
+      function updateFilterChips() {
+        const container = document.getElementById('activeFilters');
+        container.innerHTML = '';
+        
+        filters.forEach((f, i) => {
+          const chip = document.createElement('span');
+          chip.className = 'filter-chip';
+          chip.innerHTML = `${f.field} = ${f.value} <button onclick="removeFilter(${i})">×</button>`;
+          
+          // Add animation
+          chip.style.animationDelay = `${i * 0.1}s`;
+          
+          container.appendChild(chip);
+        });
+      }
+      
+      // Make removeFilter globally accessible for onclick event
+      window.removeFilter = removeFilter;
+      
+      async function fetchResults() {
+        showLoading(true);
+        errorMessage.style.display = 'none';
+        
+        try {
+          let ref = db.collection("students");
+          
+          // Apply filters
+          if (filters.length > 0) {
+            const snapshot = await ref.get();
+            let allStudents = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            
+            // Client-side filtering with arithmetic operations
+            currentStudents = allStudents.filter(student => {
+              return filters.every(filter => {
+                const value = filter.value.trim();
+                
+                // Handle arithmetic operations for numeric fields
+                if (filter.field === 'fee') {
+                  const studentFee = Number(student[filter.field]);
+                  
+                  // Greater than
+                  if (value.startsWith('>')) {
+                    const compareValue = Number(value.substring(1));
+                    return studentFee > compareValue;
+                  }
+                  // Less than
+                  if (value.startsWith('<')) {
+                    const compareValue = Number(value.substring(1));
+                    return studentFee < compareValue;
+                  }
+                  // Equal to
+                  if (value.startsWith('=')) {
+                    const compareValue = Number(value.substring(1));
+                    return studentFee === compareValue;
+                  }
+                  // Greater than or equal to
+                  if (value.startsWith('>=')) {
+                    const compareValue = Number(value.substring(2));
+                    return studentFee >= compareValue;
+                  }
+                  // Less than or equal to
+                  if (value.startsWith('<=')) {
+                    const compareValue = Number(value.substring(2));
+                    return studentFee <= compareValue;
+                  }
+                  // Default exact match
+                  return studentFee === Number(value);
+                }
+                
+                // Handle string comparison (case-insensitive) for other fields
+                if (student[filter.field] !== undefined) {
+                  return student[filter.field].toLowerCase().includes(value.toLowerCase());
+                }
+                return false;
+              });
+            });
+          } else {
+            // No filters, get all documents
+            const snapshot = await ref.get();
+            currentStudents = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+          }
+          
+          renderResults(currentStudents);
+        } catch (err) {
+          console.error("Firestore query error:", err);
+          showError("Error fetching data: " + err.message);
+        } finally {
+          showLoading(false);
+        }
+      }
+      
+      function renderResults(data) {
+        const table = document.getElementById('resultTable');
+        const count = document.getElementById('resultCount');
+        table.innerHTML = '';
+        count.innerText = `Total: ${data.length} results`;
+        
+        if (data.length === 0) {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td colspan="8" style="text-align: center;">No results found</td>`;
+          table.appendChild(row);
+          return;
+        }
+        
+        data.forEach((student, index) => {
+          const row = document.createElement('tr');
+          const statusClass = student.status === 'paid' ? 'status-paid' : 'status-unpaid';
+          
+          row.style.animationDelay = `${index * 0.05}s`;
+          row.style.animation = 'fadeIn 0.5s ease forwards';
+          
+          row.innerHTML = `
+            <td>${student.name || '-'}</td>
+            <td><span class="${statusClass}">${student.status || '-'}</span></td>
+            <td>${student.class || '-'}</td>
+            <td>${student.timing || '-'}</td>
+            <td>${student.fee ? '₹' + student.fee : '-'}</td>
+            <td>${student.subject || '-'}</td>
+            <td>${formatDate(student.lastPaid)}</td>
+            <td>${student['contact-number'] || '-'}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="openEditModal(${index})">Edit</button>
+              </div>
+            </td>
+          `;
+          table.appendChild(row);
+        });
+      }
+      
+      function formatDate(timestamp) {
+        if (!timestamp || !timestamp.seconds) return '-';
+        return new Date(timestamp.seconds * 1000).toLocaleDateString();
+      }
+      
+      function openEditModal(index) {
+        const student = currentStudents[index];
+        if (!student) return;
+        
+        // Fill the form with student data
+        document.getElementById('editStudentId').value = student.id;
+        document.getElementById('editName').value = student.name || '';
+        document.getElementById('editStatus').value = student.status || 'paid';
+        document.getElementById('editClass').value = student.class || '';
+        document.getElementById('editTiming').value = student.timing || '';
+        document.getElementById('editFee').value = student.fee || '';
+        document.getElementById('editSubject').value = student.subject || '';
+        document.getElementById('editContact').value = student['contact-number'] || '';
+        
+        // Show the modal with animation
+        editModal.style.display = 'block';
+        
+        // Set focus to the first input field
+        document.getElementById('editName').focus();
+      }
+      
+      // Make openEditModal globally accessible for onclick event
+      window.openEditModal = openEditModal;
+      
+      function closeModal() {
+        editModal.style.opacity = '0';
+        setTimeout(() => {
+          editModal.style.display = 'none';
+          editModal.style.opacity = '1';
+          modalErrorMessage.style.display = 'none';
+        }, 300);
+      }
+      
+      async function saveChanges() {
+        modalErrorMessage.style.display = 'none';
+        
+        const studentId = document.getElementById('editStudentId').value;
+        if (!studentId) {
+          return showError("Student ID not found", modalErrorMessage);
+        }
+        
+        const updatedData = {
+          name: document.getElementById('editName').value.trim(),
+          status: document.getElementById('editStatus').value,
+          class: document.getElementById('editClass').value.trim(),
+          timing: document.getElementById('editTiming').value.trim(),
+          fee: document.getElementById('editFee').value ? Number(document.getElementById('editFee').value) : null,
+          subject: document.getElementById('editSubject').value.trim(),
+          'contact-number': document.getElementById('editContact').value.trim()
+        };
+        
+        // Validate required fields
+        if (!updatedData.name) {
+          return showError("Name is required", modalErrorMessage);
+        }
+        
+        if (!updatedData.class) {
+          return showError("Class is required", modalErrorMessage);
+        }
+        
+        try {
+          // Show loading feedback
+          showLoading(true);
+          
+          await db.collection('students').doc(studentId).update(updatedData);
+          console.log("Successfully updated student:", studentId);
+          
+          // Close modal and refresh results
+          closeModal();
+          fetchResults();
+          
+          // Show success message
+          showError("Student updated successfully!", errorMessage);
+        } catch (err) {
+          console.error("Error updating student:", err);
+          showError("Error saving changes: " + err.message, modalErrorMessage);
+        } finally {
+          showLoading(false);
+        }
+      }
+      
+      // Initial fetch
+      fetchResults();
+      
+    } catch (err) {
+      console.error("Firebase initialization error:", err);
+      showError("Error initializing Firebase: " + err.message);
+    }
+  </script>
+</body>
+</html>

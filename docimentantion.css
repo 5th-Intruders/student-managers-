@@ -1,0 +1,210 @@
+/* Global Styles */
+:root {
+    --primary-color: #3f51b5;
+    --secondary-color: #ff4081;
+    --accent-color: #7c4dff;
+    --background: #f9f9ff;
+    --text-color: #333;
+    --card-bg: #fff;
+    --highlight-bg: #e8eaf6;
+    --border-radius: 8px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  body {
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background);
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Header Styles */
+  header {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white;
+    text-align: center;
+    padding: 3rem 1rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+  }
+  
+  header h1 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+  }
+  
+  header .material-icons {
+    margin-right: 12px;
+    font-size: 2.8rem;
+  }
+  
+  /* Main Content Layout */
+  .section, .highlights {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    margin: 0 auto 2rem;
+    max-width: 90%;
+    box-shadow: var(--shadow);
+  }
+  
+  h2 {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+    font-size: 1.8rem;
+  }
+  
+  /* Highlights Section */
+  .highlights {
+    background-color: var(--highlight-bg);
+    border-left: 5px solid var(--accent-color);
+  }
+  
+  .highlights ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-left: 0;
+    list-style: none;
+  }
+  
+  .highlights li {
+    background-color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+    color: var(--primary-color);
+  }
+  
+  .highlights li::before {
+    content: "✓";
+    margin-right: 8px;
+    color: var(--secondary-color);
+    font-weight: bold;
+  }
+  
+  /* Lists Styling */
+  .section ul {
+    padding-left: 1.5rem;
+  }
+  
+  .section li {
+    margin-bottom: 8px;
+    position: relative;
+  }
+  
+  .section li::marker {
+    color: var(--accent-color);
+  }
+  
+  /* Table Styling */
+  .feature-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    display: block;
+  }
+  
+  .feature-table thead {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .feature-table th, .feature-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .feature-table tbody tr:nth-child(even) {
+    background-color: var(--highlight-bg);
+  }
+  
+  .feature-table tbody tr:hover {
+    background-color: rgba(124, 77, 255, 0.1);
+  }
+  
+  /* Footer Styling */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 3rem;
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .section, .highlights {
+      padding: 1.5rem;
+      max-width: 95%;
+    }
+    
+    header {
+      padding: 2rem 1rem;
+    }
+    
+    header h1 {
+      font-size: 2rem;
+    }
+    
+    .highlights ul {
+      flex-direction: column;
+    }
+    
+    .highlights li {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+  
+  /* Additional Blog-like Elements */
+  p {
+    margin: 1rem 0;
+    font-size: 1.05rem;
+  }
+  
+  .section p:first-of-type {
+    font-size: 1.1rem;
+    color: #505050;
+  }
+  
+  /* Add subtle animations */
+  .section, .highlights {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .section:hover, .highlights:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Special styling for the add-on features section */
+  .section:last-of-type h2 {
+    color: var(--secondary-color);
+  }
+  
+  /* Contact email styling */
+  a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  
+  a:hover {
+    color: var(--secondary-color);
+    text-decoration: underline;
+  }

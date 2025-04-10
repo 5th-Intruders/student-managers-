@@ -1,0 +1,256 @@
+/* Student Analysis Dashboard Styles - Improved */
+
+/* Improved Color Palette */
+:root {
+    --primary: #3a86ff;
+    --primary-light: #8ecae6;
+    --secondary: #4361ee;
+    --accent: #ff006e;
+    --success: #38b000;
+    --danger: #d90429;
+    --warning: #ffb703;
+    --bg: #f5f7fa;
+    --text-dark: #2b2d42;
+    --text-medium: #5c677d;
+    --text-light: #ffffff;
+    --card-bg: #ffffff;
+    --card-border: #dbe2ef;
+    --card-shadow: rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Base Styles */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg);
+    color: var(--text-dark);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 2rem 0;
+  }
+  
+  /* Layout */
+  .page-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  
+  .container {
+    width: 100%;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    color: var(--primary);
+    position: relative;
+    padding-bottom: 1rem;
+  }
+  
+  h1::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+  
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--secondary);
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Dashboard Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  
+  /* Cards - Fixed to ensure visibility */
+  .card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px var(--card-shadow);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    border: 1px solid var(--card-border);
+    height: 100%;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    /* Ensure cards are visible with proper opacity */
+    opacity: 1;
+  }
+  
+  /* Ensure animation doesn't hide cards */
+  .animate-in {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  /* Lists */
+  ul {
+    list-style: none;
+    margin-top: 1rem;
+  }
+  
+  li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--card-border);
+  }
+  
+  li:last-child {
+    border-bottom: none;
+  }
+  
+  li span {
+    color: var(--text-medium);
+  }
+  
+  li span.font-medium {
+    color: var(--text-dark);
+    font-weight: 600;
+  }
+  
+  /* Status Indicators */
+  .paid-status {
+    color: var(--success) !important;
+    font-weight: 600;
+  }
+  
+  .unpaid-status {
+    color: var(--danger) !important;
+    font-weight: 600;
+  }
+  
+  /* Enhanced Card Design */
+  #totalCount, #totalPaidFee {
+    text-align: center;
+    justify-content: center;
+  }
+  
+  #totalCount p, #totalPaidFee p {
+    color: var(--primary);
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+  
+  /* Fix for card visibility during animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Specific card styles to enhance visibility */
+  #totalCount {
+    background-color: rgba(58, 134, 255, 0.05);
+    border-left: 4px solid var(--primary);
+  }
+  
+  #totalPaidFee {
+    background-color: rgba(56, 176, 0, 0.05);
+    border-left: 4px solid var(--success);
+  }
+  
+  #bySubject {
+    border-left: 4px solid var(--secondary);
+  }
+  
+  #byClass {
+    border-left: 4px solid var(--warning);
+  }
+  
+  #paidBySubject {
+    border-left: 4px solid var(--success);
+  }
+  
+  #unpaidBySubject {
+    border-left: 4px solid var(--danger);
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .card {
+      min-height: 180px;
+    }
+  }
+  
+  /* Additional badge for KPI cards */
+  #totalCount h2, #totalPaidFee h2 {
+    justify-content: center;
+  }
+  
+  #totalCount p, #totalPaidFee p {
+    position: relative;
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: rgba(58, 134, 255, 0.1);
+    border-radius: 8px;
+  }
+  
+  #totalPaidFee p {
+    background-color: rgba(56, 176, 0, 0.1);
+  }
+  
+  /* Ensure all animation delays are shorter to prevent invisibility */
+  .animate-in {
+    animation-delay: 0s !important;
+  }
+  
+  /* Fix for animation staggering */
+  #totalCount {
+    animation-delay: 50ms !important;
+  }
+  
+  #totalPaidFee {
+    animation-delay: 100ms !important;
+  }
+  
+  #bySubject {
+    animation-delay: 150ms !important;
+  }
+  
+  #byClass {
+    animation-delay: 200ms !important;
+  }
+  
+  #paidBySubject {
+    animation-delay: 250ms !important;
+  }
+  
+  #unpaidBySubject {
+    animation-delay: 300ms !important;
+  }

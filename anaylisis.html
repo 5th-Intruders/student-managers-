@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Analysis Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Animation Library -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="anaylisis.css" />
+  <!-- Add Loading Spinner CSS -->
+  <style>
+    .loader {
+      display: none;
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .collapsed-rows {
+      display: none;
+      margin-top: 8px;
+    }
+    
+    .collapsed-rows.show {
+      display: block;
+    }
+    
+    .toggle-btn {
+      font-size: 0.8rem;
+      color: #2563eb;
+      background: none;
+      border: none;
+      padding: 4px 8px;
+      cursor: pointer;
+      margin-top: 8px;
+      display: block;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .toggle-btn:hover {
+      text-decoration: underline;
+    }
+
+    ul li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="container">
+      <h1 class="animate-in">📊 Student Analysis Dashboard</h1>
+      <!-- Add refresh button and loading indicator -->
+      <div class="flex justify-end mb-4">
+        <button onclick="refreshData()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          Refresh Data
+        </button>
+      </div>
+      <div id="loader" class="loader"></div>
+      <div id="error-message" class="hidden text-red-500 text-center mb-4"></div>
+      <div class="dashboard-grid">
+        <div class="card glow-effect animate-in" id="totalCount" style="animation-delay: 0.1s"></div>
+        <div class="card glow-effect animate-in" id="totalPaidFee" style="animation-delay: 0.2s"></div>
+        <div class="card glow-effect animate-in" id="paidThisWeek" style="animation-delay: 0.3s"></div>
+        <div class="card glow-effect animate-in" id="unpaidStudents" style="animation-delay: 0.4s"></div>
+        <div class="card glow-effect animate-in" id="bySubject" style="animation-delay: 0.5s"></div>
+        <div class="card glow-effect animate-in" id="byClass" style="animation-delay: 0.6s"></div>
+        
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Cache configuration
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    let cachedData = null;
+    let lastFetchTime = null;
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
+      authDomain: "admin-database-ca73d.firebaseapp.com",
+      projectId: "admin-database-ca73d",
+      storageBucket: "admin-database-ca73d.firebasestorage.app",
+      messagingSenderId: "796828178511",
+      appId: "1:796828178511:web:1695f31e505d391d38723a"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Show/hide loading state
+    const toggleLoader = (show) => {
+      document.getElementById('loader').style.display = show ? 'block' : 'none';
+    };
+
+    // Show error message
+    const showError = (message) => {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+    };
+
+    // Clear error message
+    const clearError = () => {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = '';
+      errorDiv.classList.add('hidden');
+    };
+
+    // Optimized data fetching with caching
+    async function fetchAndAnalyzeData(forceRefresh = false) {
+      try {
+        clearError();
+        
+        // Check cache first
+        if (!forceRefresh && cachedData && lastFetchTime && (Date.now() - lastFetchTime < CACHE_DURATION)) {
+          renderData(cachedData);
+          return;
+        }
+
+        toggleLoader(true);
+
+        // Optimized Firebase query
+        const snapshot = await db.collection("students")
+          .get({source: forceRefresh ? 'server' : 'default'});
+        
+        const students = snapshot.docs.map(doc => doc.data());
+        
+        // Process data
+        const analysisData = processStudentData(students);
+        
+        // Update cache
+        cachedData = analysisData;
+        lastFetchTime = Date.now();
+
+        // Render data
+        renderData(analysisData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        showError("Error loading data. Please try again.");
+      } finally {
+        toggleLoader(false);
+      }
+    }
+
+    // Separate data processing logic
+    function processStudentData(students) {
+      const analysis = {
+        totalStudents: students.length,
+        subjectCount: {},
+        classCount: {},
+        totalPaidFee: 0,
+        paidThisWeek: 0,
+        weeklyPaidAmount: 0,
+        unpaidCount: 0
+      };
+
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      students.forEach(student => {
+        const { subject, class: studentClass, fee, status, lastPaidDate } = student;
+
+        // Update counts
+        analysis.subjectCount[subject] = (analysis.subjectCount[subject] || 0) + 1;
+        analysis.classCount[studentClass] = (analysis.classCount[studentClass] || 0) + 1;
+
+        if (status === 'paid') {
+          analysis.totalPaidFee += Number(fee || 0);
+        }
+
+        // Count students paid this week and sum up their fees
+        if (status === 'paid' && lastPaidDate) {
+          const paidDate = new Date(lastPaidDate);
+          if (paidDate >= oneWeekAgo) {
+            analysis.paidThisWeek++;
+            analysis.weeklyPaidAmount += Number(fee || 0);
+          }
+        }
+
+        // Count unpaid students
+        if (status === 'unpaid') {
+          analysis.unpaidCount++;
+        }
+      });
+
+      return analysis;
+    }
+
+    // Separate render logic
+    function renderData(data) {
+      // Total Students
+      document.getElementById("totalCount").innerHTML = `
+        <h2 class="flex items-center justify-center">
+          <span class="mr-2">👥</span> Total Students
+        </h2>
+        <p class="text-4xl font-bold mt-4">${data.totalStudents}</p>
+      `;
+      
+      // Total Paid Fee
+      document.getElementById("totalPaidFee").innerHTML = `
+        <h2 class="flex items-center justify-center">
+          <span class="mr-2">💰</span> Total Paid Fee
+        </h2>
+        <p class="text-4xl font-bold mt-4">₹${data.totalPaidFee.toLocaleString()}</p>
+      `;
+
+      // Paid This Week
+      document.getElementById("paidThisWeek").innerHTML = `
+        <h2 class="flex items-center justify-center">
+          <span class="mr-2">📅</span> Paid This Week
+        </h2>
+        <div class="text-center mt-4">
+          <p class="text-4xl font-bold">${data.paidThisWeek}</p>
+          <p class="text-lg mt-2">₹${data.weeklyPaidAmount.toLocaleString()}</p>
+        </div>
+      `;
+
+      // Unpaid Students
+      document.getElementById("unpaidStudents").innerHTML = `
+        <h2 class="flex items-center justify-center">
+          <span class="mr-2">⚠️</span> Unpaid Students
+        </h2>
+        <p class="text-4xl font-bold mt-4">${data.unpaidCount}</p>
+      `;
+
+      // Render other sections using helper function
+      renderList("bySubject", "📚 Students by Subject", data.subjectCount);
+      renderList("byClass", "🏫 Students by Class", data.classCount, "Class ");
+    }
+
+    // Modified renderList function
+    function renderList(elementId, title, data, prefix = "", statusClass = "") {
+      const entries = Object.entries(data);
+      const shouldCollapse = entries.length > 5;
+      
+      const mainRows = entries.slice(0, 5)
+        .map(([key, value]) => `
+          <li class="flex justify-between">
+            <span>${prefix}${key}</span>
+            <span class="font-medium ${statusClass}">${value}</span>
+          </li>`
+        ).join("");
+        
+      const collapsedRows = shouldCollapse ? entries.slice(5)
+        .map(([key, value]) => `
+          <li class="flex justify-between">
+            <span>${prefix}${key}</span>
+            <span class="font-medium ${statusClass}">${value}</span>
+          </li>`
+        ).join("") : "";
+        
+      document.getElementById(elementId).innerHTML = `
+        <h2>${title}</h2>
+        <ul class="mt-4">
+          ${mainRows}
+          ${shouldCollapse ? `
+            <div class="collapsed-rows" id="${elementId}-collapsed">
+              ${collapsedRows}
+            </div>
+            <button class="toggle-btn" onclick="toggleCollapse('${elementId}-collapsed')">
+              Show ${entries.length - 5} more...
+            </button>
+          ` : ''}
+        </ul>
+      `;
+    }
+    
+    // Simplified toggle function
+    function toggleCollapse(id) {
+      const element = document.getElementById(id);
+      const isShowing = element.classList.toggle('show');
+      const button = element.nextElementSibling;
+      const totalHidden = element.children.length;
+      
+      button.textContent = isShowing ? 'Show less' : `Show ${totalHidden} more...`;
+    }
+
+    // Refresh data function
+    async function refreshData() {
+      await fetchAndAnalyzeData(true);
+    }
+
+    // Initial load
+    fetchAndAnalyzeData();
+  </script>
+</body>
+</html>

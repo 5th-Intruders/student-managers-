@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Header with Firebase</title>
+    <!-- Firebase CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .logo {
+            border-radius: 50;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .icon {
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon:hover {
+            color: #3498db;
+        }
+
+        .user-icon {
+            cursor: pointer;
+            margin-left: 1rem;
+        }
+
+        .login-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            width: 300px;
+        }
+
+        .login-modal h2 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .login-form button:hover {
+            background-color: #2980b9;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .content-frame {
+            flex: 1;
+            width: 100%;
+            border: none;
+            transition: filter 0.3s ease;
+        }
+
+        .content-frame.blur {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+
+        .login-required-overlay {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 1;
+            text-align: center;
+        }
+
+        /* Make the header sticky and compact on mobile */
+        @media (max-width: 768px) {
+            header {
+                padding: 0.5rem;
+                position: sticky;
+                top: 0;
+            }
+
+            .logo span {
+                display: none;
+            }
+
+            .logo img {
+                border-radius: 50;
+                height: 30px;
+                margin-right: 0;
+            }
+
+            .nav-icons {
+                gap: 1rem;
+            }
+            
+            .icon {
+                font-size: 1rem;
+            }
+        }
+
+        .notification-icon {
+            position: relative;
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            width: 8px;
+            height: 8px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            display: none;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 16px;
+            height: 16px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .notification-panel {
+            display: none;
+            position: absolute;
+            top: 40px;
+            right: 0;
+            width: 280px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .clear-notifications {
+            cursor: pointer;
+            color: #3498db;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="https://i.postimg.cc/KvHNjCKD/gmail-logo.jpg" alt="Logo">
+            <span>YourApp</span>
+        </div>
+        <div class="nav-icons">
+            <div class="icon" onclick="loadContent('documentantion.html')" title="Documentation">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="icon" onclick="loadContent('anaylisis.html')" title="analysis">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="icon" onclick="loadContent('quiryfinal.html')" title="Dashboard">
+                <i class="fas fa-gauge-high"></i>
+            </div>
+            <div class="icon" onclick="loadContent('search.html')" title="Query">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="icon" onclick="loadContent('form2.html')" title="Add Student">
+                <i class="fas fa-user-plus"></i>
+            </div>
+        <div class="icon" onclick="loadContent('store.html')" title="Marketplace">
+                <i class="fas fa-store"></i>
+            </div>
+            
+            <div class="icon notification-icon" onclick="toggleNotifications()" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="notification-dot"></span>
+                <span class="notification-count">0</span>
+                <div class="notification-panel">
+                    <div class="notification-header">
+                        <span class="notification-title">Notifications</span>
+                        <span class="clear-notifications" onclick="clearNotifications(event)">Clear all</span>
+                    </div>
+                    <div id="notification-list">
+                        <!-- Notifications will be added here -->
+                    </div>
+                </div>
+            </div>
+            <div class="icon user-icon" onclick="toggleLoginModal()" title="Login">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+    </header>
+
+    <iframe id="contentFrame" class="content-frame blur" src="anaylisis.html"></iframe>
+    <div id="loginRequiredMsg" class="login-required-overlay">
+        Please login to view content
+    </div>
+
+    <div id="loginModal" class="login-modal">
+        <span class="close-modal" onclick="toggleLoginModal()">
+            <i class="fas fa-times"></i>
+        </span>
+        <h2>Login</h2>
+        <div class="login-form">
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="loginWithEmailPassword()">Login</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Firebase with your config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
+            authDomain: "admin-database-ca73d.firebaseapp.com",
+            projectId: "admin-database-ca73d",
+            storageBucket: "admin-database-ca73d.firebasestorage.app",
+            messagingSenderId: "796828178511",
+            appId: "1:796828178511:web:1695f31e505d391d38723a"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let notifications = [];
+
+        // Function to load content in the iframe
+        function loadContent(page) {
+            document.getElementById('contentFrame').src = page;
+        }
+
+        // Toggle login modal
+        function toggleLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+            }
+        }
+
+        // Toggle notifications panel
+        function toggleNotifications() {
+            const panel = document.querySelector('.notification-panel');
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                // Mark notifications as read when opened
+                document.querySelector('.notification-dot').style.display = 'none';
+            }
+        }
+
+        // Clear all notifications
+        function clearNotifications(event) {
+            event.stopPropagation();
+            notifications = [];
+            document.getElementById('notification-list').innerHTML = '';
+            document.querySelector('.notification-count').style.display = 'none';
+            document.querySelector('.notification-dot').style.display = 'none';
+            updateNotificationBadge();
+        }
+
+        // Add a notification
+        function addNotification(message, type = 'info') {
+            const notification = {
+                message,
+                type,
+                timestamp: new Date()
+            };
+            
+            notifications.push(notification);
+            updateNotificationUI();
+            
+            // Save to local storage (optional)
+            localStorage.setItem('notifications', JSON.stringify(notifications));
+            
+            // Show the notification dot
+            document.querySelector('.notification-dot').style.display = 'block';
+            
+            // Update the count badge
+            updateNotificationBadge();
+        }
+
+        // Update notification UI
+        function updateNotificationUI() {
+            const notificationList = document.getElementById('notification-list');
+            notificationList.innerHTML = '';
+            
+            if (notifications.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'notification-item';
+                emptyItem.textContent = 'No notifications';
+                notificationList.appendChild(emptyItem);
+                return;
+            }
+            
+            // Sort notifications with newest first
+            const sortedNotifications = [...notifications].sort((a, b) => 
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+            
+            sortedNotifications.forEach(notification => {
+                const item = document.createElement('div');
+                item.className = 'notification-item';
+                const time = new Date(notification.timestamp).toLocaleTimeString();
+                item.innerHTML = `<strong>${notification.message}</strong><br>
+                                <small>${time}</small>`;
+                notificationList.appendChild(item);
+            });
+        }
+
+        // Update notification badge count
+        function updateNotificationBadge() {
+            const countElement = document.querySelector('.notification-count');
+            if (notifications.length > 0) {
+                countElement.textContent = notifications.length;
+                countElement.style.display = 'flex';
+            } else {
+                countElement.style.display = 'none';
+            }
+        }
+
+        // Check stored credentials on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load any saved notifications
+            const savedNotifications = localStorage.getItem('notifications');
+            if (savedNotifications) {
+                notifications = JSON.parse(savedNotifications);
+                updateNotificationUI();
+                updateNotificationBadge();
+                if (notifications.length > 0) {
+                    document.querySelector('.notification-dot').style.display = 'block';
+                }
+            }
+            
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                firebase.auth().signInWithEmailAndPassword(user.email, user.password)
+                    .then(() => {
+                        console.log('Auto-login successful');
+                        // Run the status checks after successful login
+                        checkDemoStudentsOverdue();
+                        checkAndUpdatePaidStudents();
+                    })
+                    .catch(() => {
+                        localStorage.removeItem('user');
+                        setBlurState(true);
+                    });
+            } else {
+                setBlurState(true);
+            }
+        });
+
+        function setBlurState(shouldBlur) {
+            const frame = document.getElementById('contentFrame');
+            const msg = document.getElementById('loginRequiredMsg');
+            if (shouldBlur) {
+                frame.classList.add('blur');
+                msg.style.display = 'block';
+            } else {
+                frame.classList.remove('blur');
+                msg.style.display = 'none';
+            }
+        }
+
+        // Modified login function
+        function loginWithEmailPassword() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Store credentials
+                    localStorage.setItem('user', JSON.stringify({ email, password }));
+                    setBlurState(false);
+                    alert("Logged in successfully!");
+                    toggleLoginModal();
+                    
+                    // Run the status checks after successful login
+                    checkDemoStudentsOverdue();
+                    checkAndUpdatePaidStudents();
+                })
+                .catch((error) => {
+                    alert("Error: " + error.message);
+                });
+        }
+
+        // Modified auth state listener
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                document.querySelector('.user-icon i').classList.remove('fa-user');
+                document.querySelector('.user-icon i').classList.add('fa-user-check');
+                setBlurState(false);
+            } else {
+                document.querySelector('.user-icon i').classList.remove('fa-user-check');
+                document.querySelector('.user-icon i').classList.add('fa-user');
+                setBlurState(true);
+            }
+        });
+
+        // Add logout function
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                localStorage.removeItem('user');
+                setBlurState(true);
+            });
+        }
+
+        // Function to check for demo students who have been in the system for more than 2 days
+        async function checkDemoStudentsOverdue() {
+            try {
+                const studentsRef = db.collection('students');
+                const querySnapshot = await studentsRef.where('status', '==', 'demo').get();
+                
+                const twoDaysAgo = new Date();
+                twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+                
+                let overdueCount = 0;
+                
+                querySnapshot.forEach(doc => {
+                    const studentData = doc.data();
+                    if (studentData.registrationDate) {
+                        // Convert Firebase timestamp to JavaScript Date
+                        const registrationDate = studentData.registrationDate.toDate();
+                        
+                        if (registrationDate < twoDaysAgo) {
+                            overdueCount++;
+                            console.log(`Student ${doc.id} has exceeded the 2-day demo period`);
+                            
+                            // Optional: Update the student status or take other actions
+                            // doc.ref.update({ status: 'expired' });
+                        }
+                    }
+                });
+                
+                if (overdueCount > 0) {
+                    addNotification(`${overdueCount} demo student(s) have exceeded their 2-day trial period`, 'warning');
+                }
+                
+                return overdueCount;
+            } catch (error) {
+                console.error("Error checking demo students:", error);
+                addNotification(`Error checking demo students: ${error.message}`, 'error');
+                return 0;
+            }
+        }
+
+        // Function to check and update paid students whose payment is over 31 days old
+        async function checkAndUpdatePaidStudents() {
+            try {
+                const studentsRef = db.collection('students');
+                const querySnapshot = await studentsRef.where('status', '==', 'paid').get();
+                
+                const thirtyOneDaysAgo = new Date();
+                thirtyOneDaysAgo.setDate(thirtyOneDaysAgo.getDate() - 31);
+                
+                let expiredCount = 0;
+                const updatedStudents = [];
+                
+                for (const doc of querySnapshot.docs) {
+                    const studentData = doc.data();
+                    if (studentData.lastPaidDate) {
+                        // Convert Firebase timestamp to JavaScript Date
+                        const lastPaidDate = studentData.lastPaidDate.toDate();
+                        
+                        if (lastPaidDate < thirtyOneDaysAgo) {
+                            expiredCount++;
+                            
+                            // Update the student status to unpaid
+                            await doc.ref.update({ 
+                                status: 'unpaid',
+                                statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            
+                            updatedStudents.push({
+                                id: doc.id,
+                                name: studentData.name || 'Unknown',
+                                email: studentData.email || 'No email'
+                            });
+                        }
+                    }
+                }
+                
+                if (expiredCount > 0) {
+                    addNotification(`${expiredCount} student(s) changed from paid to unpaid status`, 'alert');
+                    
+                    // Log details of updated students
+                    console.log("Students updated to unpaid status:", updatedStudents);
+                }
+                
+                return expiredCount;
+            } catch (error) {
+                console.error("Error updating paid students:", error);
+                addNotification(`Error updating paid students: ${error.message}`, 'error');
+                return 0;
+            }
+        }
+
+        // Schedule regular checks (e.g., every hour)
+        function scheduleStatusChecks() {
+            // Initial checks
+            checkDemoStudentsOverdue();
+            checkAndUpdatePaidStudents();
+            
+            // Set up recurring checks every hour
+            setInterval(() => {
+                checkDemoStudentsOverdue();
+                checkAndUpdatePaidStudents();
+            }, 60 * 60 * 1000); // 1 hour in milliseconds
+        }
+
+        // Run the scheduler when a user is logged in
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                document.querySelector('.user-icon i').classList.remove('fa-user');
+                document.querySelector('.user-icon i').classList.add('fa-user-check');
+                setBlurState(false);
+                
+                // Start the scheduled checks
+                scheduleStatusChecks();
+            } else {
+                document.querySelector('.user-icon i').classList.remove('fa-user-check');
+                document.querySelector('.user-icon i').classList.add('fa-user');
+                setBlurState(true);
+            }
+        });
+
+        // Click away from notification panel
+        document.addEventListener('click', function(event) {
+            const notificationPanel = document.querySelector('.notification-panel');
+            const notificationIcon = document.querySelector('.notification-icon');
+            
+            if (notificationPanel.style.display === 'block' && 
+                !notificationPanel.contains(event.target) && 
+                !notificationIcon.contains(event.target)) {
+                notificationPanel.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <!-- Firebase CDN links -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Animation library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="quiryfinal.css"/>
+    <style>
+        .tables-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            overflow-x: auto;
+            padding: 20px;
+            margin: 0 auto;
+            max-width: 1400px;
+        }
+
+        .table-section {
+            flex: 1;
+            min-width: 350px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        @media screen and (max-width: 1200px) {
+            .tables-container {
+                flex-direction: column;
+            }
+
+            .table-section {
+                margin-bottom: 20px;
+                width: 100%;
+            }
+        }
+
+        /* Add these new styles */
+        tr.hidden-row {
+            display: none;
+        }
+
+        .toggle-button {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .toggle-button:hover {
+            background: #e0e0e0;
+        }
+
+        .table-wrapper {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard animate__animated animate__fadeIn">
+        <h1>Student Management Dashboard</h1>
+        
+        <div class="notification-container">
+            <div id="demo-notification" class="notification animate__animated animate__pulse">
+                <i class="warning-icon">⚠️</i> Warning: Some demo students have been in demo status for more than 2 days.
+            </div>
+            <div id="payment-notification" class="notification animate__animated animate__pulse">
+                <i class="warning-icon">⚠️</i> Warning: Some paid students haven't paid in more than 31 days and have been marked as unpaid.
+            </div>
+        </div>
+        
+        <div class="tables-container">
+            <div class="table-section animate__animated animate__fadeInUp">
+                <h2>Demo Students</h2>
+                <table id="demo-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Subject</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="demo-table-body"></tbody>
+                </table>
+            </div>
+            
+            <div class="table-section animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+                <h2>Paid Students</h2>
+                <table id="paid-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Subject</th>
+                            <th>Last Paid</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paid-table-body"></tbody>
+                </table>
+            </div>
+            
+            <div class="table-section animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+                <h2>Unpaid Students</h2>
+                <table id="unpaid-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Subject</th>
+                            <th>Last Paid</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unpaid-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Update Modal -->
+    <div id="update-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Student Options</h2>
+            <p>What would you like to do with <span id="student-name"></span>?</p>
+            <div class="modal-actions">
+                <button id="delete-student-btn" class="btn btn-delete">Delete Student</button>
+                <button id="update-to-paid-btn" class="btn btn-update">Update to Paid</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Student Updated</h2>
+            <div id="confirmation-details"></div>
+            <div class="modal-actions">
+                <button id="confirm-btn" class="btn btn-update">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Compact JS implementation with added animation
+        (function() {
+            // Firebase config
+            const firebaseConfig = {
+              apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
+              authDomain: "admin-database-ca73d.firebaseapp.com",
+              projectId: "admin-database-ca73d",
+              storageBucket: "admin-database-ca73d.firebasestorage.app",
+              messagingSenderId: "796828178511",
+              appId: "1:796828178511:web:1695f31e505d391d38723a"
+            };
+            
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const studentsRef = db.collection("students");
+            
+            // DOM elements
+            const el = {
+                tables: {
+                    demo: document.getElementById("demo-table-body"),
+                    paid: document.getElementById("paid-table-body"),
+                    unpaid: document.getElementById("unpaid-table-body")
+                },
+                modals: {
+                    update: document.getElementById("update-modal"),
+                    confirmation: document.getElementById("confirmation-modal")
+                },
+                buttons: {
+                    delete: document.getElementById("delete-student-btn"),
+                    update: document.getElementById("update-to-paid-btn"),
+                    confirm: document.getElementById("confirm-btn")
+                },
+                elements: {
+                    studentName: document.getElementById("student-name"),
+                    confirmDetails: document.getElementById("confirmation-details"),
+                    demoNotification: document.getElementById("demo-notification"),
+                    paymentNotification: document.getElementById("payment-notification"),
+                    closeBtns: document.querySelectorAll(".close")
+                }
+            };
+            
+            // State variables
+            let state = {
+                currentStudent: null
+            };
+            
+            // Initialize event listeners
+            function initEvents() {
+                // Close modal buttons
+                el.elements.closeBtns.forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        el.modals.update.style.display = "none";
+                        el.modals.confirmation.style.display = "none";
+                    });
+                });
+                
+                // Close modal when clicking outside
+                window.addEventListener("click", (e) => {
+                    if (e.target === el.modals.update) {
+                        el.modals.update.style.display = "none";
+                    }
+                    if (e.target === el.modals.confirmation) {
+                        el.modals.confirmation.style.display = "none";
+                    }
+                });
+                
+                // Delete student button
+                el.buttons.delete.addEventListener("click", () => {
+                    if (state.currentStudent) {
+                        deleteStudent(state.currentStudent.id);
+                        el.modals.update.style.display = "none";
+                    }
+                });
+                
+                // Update to paid button
+                el.buttons.update.addEventListener("click", () => {
+                    if (state.currentStudent) {
+                        updateToPaid(state.currentStudent.id, state.currentStudent);
+                    }
+                });
+                
+                // Confirm button
+                el.buttons.confirm.addEventListener("click", () => {
+                    el.modals.confirmation.style.display = "none";
+                    loadStudents();
+                });
+            }
+            
+            // Format date helper
+            function formatDate(date) {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            // Days difference helper
+            function daysDiff(date1, date2) {
+                const d1 = new Date(date1);
+                const d2 = new Date(date2);
+                return Math.floor((d1 - d2) / (1000 * 60 * 60 * 24));
+            }
+            
+            // Clear tables
+            function clearTables() {
+                Object.values(el.tables).forEach(table => {
+                    table.innerHTML = '';
+                    const wrapper = table.closest('.table-section');
+                    const existingBtn = wrapper.querySelector('.toggle-button');
+                    if (existingBtn) {
+                        existingBtn.remove();
+                    }
+                });
+            }
+            
+            // Add animation class to a row
+            function addRowWithAnimation(row, delay = 0) {
+                row.classList.add("animate__animated", "animate__fadeIn");
+                row.style.animationDelay = `${delay}s`;
+                return row;
+            }
+            
+            // Add student to table
+            function addStudentToTable(student, tableType, index) {
+                const row = document.createElement("tr");
+                const delay = index * 0.1; // Stagger animations
+                
+                // Common cells
+                row.innerHTML = `
+                    <td>${student.name || ""}</td>
+                    <td>${student.class || ""}</td>
+                    <td>${student.subject || ""}</td>
+                `;
+                
+                // Table-specific cells
+                if (tableType === "demo") {
+                    row.innerHTML += `<td><button class="btn btn-update">Update</button></td>`;
+                    row.querySelector(".btn-update").addEventListener("click", () => openUpdateModal(student));
+                } 
+                else if (tableType === "paid") {
+                    const lastPaid = student.lastPaid ? formatDate(student.lastPaid.toDate()) : "N/A";
+                    row.innerHTML += `<td>${lastPaid}</td>`;
+                } 
+                else if (tableType === "unpaid") {
+                    const lastPaid = student.lastPaid ? formatDate(student.lastPaid.toDate()) : "N/A";
+                    row.innerHTML += `
+                        <td>${lastPaid}</td>
+                        <td><button class="btn btn-delete">Delete</button></td>
+                    `;
+                    row.querySelector(".btn-delete").addEventListener("click", () => deleteStudent(student.id));
+                }
+                
+                addRowWithAnimation(row, delay);
+                el.tables[tableType].appendChild(row);
+            }
+            
+            // Open update modal
+            function openUpdateModal(student) {
+                state.currentStudent = student;
+                el.elements.studentName.textContent = student.name || "this student";
+                el.modals.update.style.display = "flex";
+            }
+            
+            // Delete student
+            function deleteStudent(studentId) {
+                if (confirm("Are you sure you want to delete this student?")) {
+                    studentsRef.doc(studentId).delete()
+                        .then(() => {
+                            alert("Student deleted successfully!");
+                            loadStudents();
+                        })
+                        .catch(error => {
+                            console.error("Error deleting student:", error);
+                            alert("Error deleting student. Please try again.");
+                        });
+                }
+            }
+            
+            // Update student to paid
+            function updateToPaid(studentId, student) {
+                const now = firebase.firestore.Timestamp.now();
+                
+                // Create update object with both status and lastPaid fields
+                const updateData = {
+                    status: "paid",
+                    lastPaid: now,
+                    lastPaidDate: new Date().toISOString() // Add ISO string format for easier date handling
+                };
+                
+                studentsRef.doc(studentId).update(updateData)
+                .then(() => {
+                    el.modals.update.style.display = "none";
+                    
+                    // Show confirmation details
+                    el.elements.confirmDetails.innerHTML = `
+                        <p><strong>Name:</strong> ${student.name || ""}</p>
+                        <p><strong>Class:</strong> ${student.class || ""}</p>
+                        <p><strong>Subject:</strong> ${student.subject || ""}</p>
+                        <p><strong>Fee:</strong> ${student.fee || ""}</p>
+                        <p><strong>Timing:</strong> ${student.timing || ""}</p>
+                        <p><strong>Status:</strong> <span class="text-success">Paid</span></p>
+                        <p><strong>Last Paid:</strong> ${formatDate(new Date())}</p>
+                    `;
+                    
+                    el.modals.confirmation.style.display = "flex";
+                })
+                .catch(error => {
+                    console.error("Error updating student:", error);
+                    alert("Error updating student. Please try again.");
+                });
+            }
+            
+            // Check for notifications
+            function checkNotifications() {
+                const now = new Date();
+                const oneMonthAgo = new Date();
+                oneMonthAgo.setDate(oneMonthAgo.getDate() - 31);
+                let hasOverdueDemos = false;
+                let hasOverduePaid = false;
+                
+                studentsRef.get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const student = doc.data();
+                        
+                        // Check demo students older than 2 days
+                        if (student.status === "demo" && student.creationDate) {
+                            const creationDate = new Date(student.creationDate.toDate());
+                            const twoDaysAgo = new Date();
+                            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+                            if (creationDate < twoDaysAgo) {
+                                hasOverdueDemos = true;
+                            }
+                        }
+                        
+                        // Check paid students who haven't paid in 31 days
+                        if (student.status === "paid" && student.lastPaid) {
+                            const lastPaidDate = new Date(student.lastPaid.toDate());
+                            if (lastPaidDate < oneMonthAgo) {
+                                hasOverduePaid = true;
+                                studentsRef.doc(doc.id).update({
+                                    status: "unpaid"
+                                });
+                            }
+                        }
+                    });
+                    
+                    // Show notifications with animation
+                    if (hasOverdueDemos) {
+                        el.elements.demoNotification.style.display = "block";
+                        el.elements.demoNotification.classList.add("animate__animated", "animate__pulse");
+                    } else {
+                        el.elements.demoNotification.style.display = "none";
+                    }
+                    
+                    if (hasOverduePaid) {
+                        el.elements.paymentNotification.style.display = "block";
+                        el.elements.paymentNotification.classList.add("animate__animated", "animate__pulse");
+                    } else {
+                        el.elements.paymentNotification.style.display = "none";
+                    }
+                });
+            }
+            
+            // Update student status based on time
+            function updateStatusIfNeeded(student, docId) {
+                const now = new Date();
+                
+                if (student.status === "paid" && student.lastPaid) {
+                    const lastPaidDate = student.lastPaid.toDate();
+                    if (daysDiff(now, lastPaidDate) > 31) {
+                        studentsRef.doc(docId).update({
+                            status: "unpaid"
+                        });
+                        student.status = "unpaid";
+                    }
+                }
+                
+                return student;
+            }
+            
+            // Load students data
+            function loadStudents() {
+                clearTables();
+                checkNotifications();
+                
+                // Group students by status
+                const students = {
+                    demo: [],
+                    paid: [],
+                    unpaid: []
+                };
+                
+                studentsRef.get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const student = {...doc.data(), id: doc.id};
+                        const updatedStudent = updateStatusIfNeeded(student, doc.id);
+                        
+                        if (updatedStudent.status === "demo") {
+                            students.demo.push(updatedStudent);
+                        } else if (updatedStudent.status === "paid") {
+                            students.paid.push(updatedStudent);
+                        } else if (updatedStudent.status === "unpaid") {
+                            students.unpaid.push(updatedStudent);
+                        }
+                    });
+                    
+                    // Add students to tables with animated rows
+                    students.demo.forEach((student, index) => addStudentToTable(student, "demo", index));
+                    students.paid.forEach((student, index) => addStudentToTable(student, "paid", index));
+                    students.unpaid.forEach((student, index) => addStudentToTable(student, "unpaid", index));
+                    
+                    // Setup collapse functionality for each table
+                    setupTableCollapse(el.tables.demo, students.demo, "demo");
+                    setupTableCollapse(el.tables.paid, students.paid, "paid");
+                    setupTableCollapse(el.tables.unpaid, students.unpaid, "unpaid");
+                    
+                }).catch(error => {
+                    console.error("Error loading students:", error);
+                });
+            }
+            
+            // Add this new function to handle table collapse
+            function setupTableCollapse(tableBody, students, tableType) {
+                const MAX_VISIBLE_ROWS = 15;
+                const wrapper = tableBody.closest('.table-section');
+                
+                if (students.length > MAX_VISIBLE_ROWS) {
+                    const toggleButton = document.createElement('button');
+                    toggleButton.className = 'toggle-button';
+                    toggleButton.textContent = 'Show More';
+                    
+                    // Hide rows beyond the limit
+                    Array.from(tableBody.children)
+                        .slice(MAX_VISIBLE_ROWS)
+                        .forEach(row => row.classList.add('hidden-row'));
+                    
+                    toggleButton.addEventListener('click', () => {
+                        const hiddenRows = tableBody.getElementsByClassName('hidden-row');
+                        const isExpanded = toggleButton.textContent === 'Show Less';
+                        
+                        Array.from(hiddenRows).forEach(row => {
+                            row.style.display = isExpanded ? 'none' : 'table-row';
+                        });
+                        
+                        toggleButton.textContent = isExpanded ? 'Show More' : 'Show Less';
+                    });
+                    
+                    wrapper.appendChild(toggleButton);
+                }
+            }
+
+            // Initialize app
+            function init() {
+                initEvents();
+                loadStudents();
+            }
+            
+            // Run on page load
+            document.addEventListener("DOMContentLoaded", init);
+        })();
+    </script>
+</body>
+</html>

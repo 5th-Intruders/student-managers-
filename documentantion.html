@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web App Documentation</title>
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="docimentantion.css" rel="stylesheet">
+
+</head>
+<body>
+    <header>
+        <h1>
+            <span class="material-icons">description</span>
+            Web App Documentation
+        </h1>
+    </header>
+    
+    <div class="highlights">
+        <h2>Key Highlights</h2>
+        <ul>
+            <li>Access anywhere on any screen</li>
+            <li>Manage nearly everything</li>
+            <li>Customize with your need</li>
+            <li>Ask for additional feature (additional charges)</li>
+            <li>Secure</li>
+            <li>Fast with real-time updates</li>
+            <li>Uses Firebase</li>
+            <li>Analysis (expandable)</li>
+            <li>Query with ease</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>Overview</h2>
+        <p>This web app is developed as a case study/project by Kartik Shukla & Yuvraj from Delhi. It is designed for coaching institutes to manage student payments and statuses easily. You can use it anywhere on any screen. The app is fast, secure, and powered by Firebase.</p>
+        <p>This document guides you through different pages of the app: Add, Dashboard, Search/Edit, Analysis, and additional info. Custom functionality can be added as per your need. If you want a version tailored for your coaching, contact us at white.devil.94484@gmail.com.</p>
+    </div>
+    
+    <div class="section">
+        <h2>Add Page</h2>
+        <p>This page is used to add a student entry into the database. Once added, the student data appears on other pages. Entries can later be edited or deleted from the Search/Edit or Dashboard sections. The form layout is customizable as per your needs - and functional customizations are free.</p>
+    </div>
+    
+    <div class="section">
+        <h2>Dashboard Page</h2>
+        <p>The dashboard shows all students filtered into categories: demo, paid, and unpaid. You can manually update statuses, or let the system auto-update them based on server time.</p>
+        <ul>
+            <li>Demo to Paid alert after 2 days</li>
+            <li>Paid to Unpaid if the last payment is older than 31 days</li>
+        </ul>
+        <p>Notifications and reminders are displayed to ensure no status is missed.</p>
+    </div>
+    
+    <div class="section">
+        <h2>Search/Edit Page</h2>
+        <p>Use this page to search or edit student entries. Filtering supports smart parameters:</p>
+        <ul>
+            <li>Name search is partial (e.g., 'art' matches Kartik, Aryan)</li>
+            <li>Fee-based filters using logical operators (e.g., '>800')</li>
+        </ul>
+        <p>You can also edit or delete any entry here.</p>
+    </div>
+    
+    <div class="section">
+        <h2>Analysis Page</h2>
+        <p>View custom visual analysis such as bar graphs or pie charts. Pre-built examples are included.</p>
+        <p>Track student categories, payment trends, and more - no manual counting needed. Additional graph types and custom filters can be added on request.</p>
+    </div>
+    
+    <div class="section">
+        <h2>Some More Important Info</h2>
+        <p>This project uses Firebase's free Spark Plan:</p>
+        <ul>
+            <li>50,000 reads, 20,000 writes, 20,000 deletes (Firestore)</li>
+            <li>1 GB storage, 10 GB network bandwidth</li>
+        </ul>
+        <p>Firestore is structured and good for complex filtering. Realtime DB is better for light, real-time operations. Optimizing queries is important to avoid exceeding free limits.</p>
+    </div>
+    
+    <div class="section">
+        <h2>About Us</h2>
+        <p>We are a team of two developers - Kartik (Database + JS) and Yuvraj (CSS, HTML, JS). We've worked on various real-world and demo projects. If you're here, you were likely referred by us. This app is a working case study and can be customized for your institution.</p>
+    </div>
+    
+    <div class="section">
+        <h2>Optional Add-on Features (Charged Separately)</h2>
+        <table class="feature-table">
+            <thead>
+                <tr>
+                    <th>Feature Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Email Notifications</td>
+                    <td>Send automated email alerts to admins or students (e.g., payment reminders, follow-ups).</td>
+                    <td>200₹</td>
+                </tr>
+                <tr>
+                    <td>Midnight Theme</td>
+                    <td>Enable a midnight interface for comfortable late-night use. and a new midnight exprience</td>
+                    <td>50₹</td>
+                </tr>
+                <tr>
+                    <td>Weekly Summary Report</td>
+                    <td>Get a report of daily activity (new entries, unpaid count, alerts) via email</td>
+                    <td>300₹</td>
+                </tr>
+                <tr>
+                    <td>Student Profile Page</td>
+                    <td>Each student gets a full profile view with fee history, status logs, and notes.</td>
+                    <td>200₹</td>
+                </tr>
+                <tr>
+                    <td>Admin Panel Access Levels</td>
+                    <td>Create multiple logins for your staff with restricted access (e.g., only Add, not Edit).</td>
+                    <td>400₹</td>
+                </tr>
+                <tr>
+                    <td>Attendance Tracking</td>
+                    <td>Track attendance of students with ease</td>
+                    <td>1000₹</td>
+                </tr>
+                <tr>
+                    <td>Export to Excel/CSV</td>
+                    <td>Export data from dashboard or search to Excel or CSV format in one click.</td>
+                    <td>200₹</td>
+                </tr>
+                <tr>
+                    <td>PDF Fee Receipts</td>
+                    <td>Generate downloadable receipts after payment updates with custom branding.</td>
+                    <td>300₹</td>
+                </tr>
+                <tr>
+                    <td>Quick Chat Box</td>
+                    <td>Internal note-taking or small chat between admin and sub-admins.</td>
+                    <td>150₹</td>
+                </tr>
+                <tr>
+                    <td>Physical Backup</td>
+                    <td>Optional backup of your database using a button to your computer (you can tell who can use it and who cant)</td>
+                    <td>500₹</td>
+                </tr>
+                <tr>
+                    <td>App Icon & Branding</td>
+                    <td>Customize the app with your logo, colors, and favicon.</td>
+                    <td>50₹</td>
+                </tr>
+                <tr>
+                    <td>Audio Alerts</td>
+                    <td>Play a soft sound alert when an auto-status change or new alert appears.</td>
+                    <td>22₹ (cause sound are hard to find)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="footer">
+        <p>Created by Kartik Shukla & Yuvraj</p>
+    </div>
+</body>
+</html>

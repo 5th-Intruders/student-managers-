@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dual Forms - Light Theme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f5f5f7;
+      font-family: 'Segoe UI', sans-serif;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .form-container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      transition: all 0.5s ease;
+      position: absolute;
+      top: 100px;
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .top-toggle-btn {
+      padding: 6px;
+      background: #e0e0e0;
+      color: #333;
+      font-size: 16px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: 0.3s;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .top-toggle-btn:hover {
+      background: #d0d0d0;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #444;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #333;
+    }
+
+    input[disabled] {
+      background: #f5f5f5;
+      color: #888;
+      border: 1px solid #e0e0e0;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .submit-button {
+      padding: 10px 20px;
+      background: linear-gradient(to right, #007AFF, #5856D6);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .submit-button:hover {
+      background: linear-gradient(to right, #0066CC, #4845AA);
+    }
+
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(100%);
+    }
+
+    .visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    @media (max-width: 480px) {
+      .form-container {
+        padding: 20px;
+        top: 80px;
+      }
+      .submit-button {
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Student Form -->
+  <div class="form-container visible" id="studentForm">
+    <div class="form-header">
+      <span class="form-hint">Tap to switch ↔</span>
+      <button class="top-toggle-btn" onclick="showForm('course')">↔</button>
+    </div>
+    <h2>Student Form</h2>
+    <form onsubmit="return validateForm(this)" onclick="event.stopPropagation();">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="name" required>
+
+      <label>Class</label>
+      <input type="number" name="class" placeholder="class" required>
+
+      <label>Subject</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" name="subject"> Maths</label>
+        <label><input type="checkbox" name="subject"> Science</label>
+        <label><input type="checkbox" name="subject"> English</label>
+        <label><input type="checkbox" name="subject"> History</label>
+        <label><input type="checkbox" name="subject"> Computer</label>
+        <label><input type="checkbox" name="subject"> Hindi</label>
+      </div>
+
+      <label>Timing</label>
+      <select name="timing" required>
+        <option value="">Select timing</option>
+        <option>10AM - 11AM</option>
+        <option>5PM - 6PM</option>
+      </select>
+
+      <label>Fee</label>
+      <input type="number" name="fee" placeholder="fee" required>
+
+      <label>Contact Number</label>
+      <input type="number" name="contact-number" placeholder="contact-number" required>
+
+      <label>Last Paid</label>
+      <input type="text" placeholder="Not fillable" disabled>
+
+      <div class="nav-buttons">
+        <button type="submit" class="submit-button">Submit</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Course Form -->
+  <div class="form-container hidden" id="courseForm">
+    <div class="form-header">
+      <span class="form-hint">Tap to switch ↔</span>
+      <button class="top-toggle-btn" onclick="showForm('student')">↔</button>
+    </div>
+    <h2>Course Form</h2>
+    <form onsubmit="return validateForm(this)" onclick="event.stopPropagation();">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="name" required>
+
+      <label>Courses</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" name="subject"> Web Dev</label>
+        <label><input type="checkbox" name="subject"> Python</label>
+        <label><input type="checkbox" name="subject"> VFX</label>
+        <label><input type="checkbox" name="subject"> UI Design</label>
+      </div>
+
+      <label>Timing</label>
+      <select name="timing" required>
+        <option value="">Select timing</option>
+        <option>10:00 - 11:00</option>
+        <option>05:00 - 06:00</option>
+      </select>
+
+      <label>Fee</label>
+      <input type="number" name="fee" placeholder="fee" required>
+
+      <label>Contact</label>
+      <input type="number" name="contact-number" placeholder="contact-number" required>
+
+      <label>Last Paid</label>
+      <input type="text" placeholder="Not fillable" disabled>
+
+      <div class="nav-buttons">
+        <button type="submit" class="submit-button">Submit</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Add Firebase CDN before closing body tag -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      // Replace with your Firebase config
+      apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
+              authDomain: "admin-database-ca73d.firebaseapp.com",
+              projectId: "admin-database-ca73d",
+              storageBucket: "admin-database-ca73d.firebasestorage.app",
+              messagingSenderId: "796828178511",
+              appId: "1:796828178511:web:1695f31e505d391d38723a"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let currentForm = 'student';
+
+    // Function to store form data
+    async function storeFormData(formType, formData) {
+      try {
+        // Get selected subjects/courses
+        const checkboxes = document.querySelectorAll(`#${currentForm}Form input[name="subject"]:checked`);
+        const selectedItems = Array.from(checkboxes).map(cb => cb.parentElement.textContent.trim());
+
+        // Format the data according to the required structure
+        const formattedData = {
+          name: formData.name,
+          timing: formData.timing,
+          fee: parseInt(formData.fee),
+          subject: selectedItems,
+          "last-paid": "",
+          "contact-number": formData["contact-number"],
+          status: "demo"
+        };
+
+        // Add class field only for students
+        if (formType === 'students') {
+          formattedData.class = parseInt(formData.class);
+        }
+
+        const docRef = await db.collection(formType).add(formattedData);
+        console.log("Document written with ID: ", docRef.id);
+        return true;
+      } catch (error) {
+        console.error("Error adding document: ", error);
+        return false;
+      }
+    }
+
+    function showForm(form) {
+      if (form === currentForm) return;
+      const student = document.getElementById("studentForm");
+      const course = document.getElementById("courseForm");
+      if (form === "student") {
+        student.classList.remove("hidden");
+        student.classList.add("visible");
+        course.classList.remove("visible");
+        course.classList.add("hidden");
+      } else {
+        course.classList.remove("hidden");
+        course.classList.add("visible");
+        student.classList.remove("visible");
+        student.classList.add("hidden");
+      }
+      currentForm = form;
+    }
+
+    function validateForm(form) {
+      const inputs = form.querySelectorAll("input[required], select[required]");
+      for (let input of inputs) {
+        if (!input.value.trim()) {
+          alert("Please fill all required fields.");
+          return false;
+        }
+      }
+
+      // Collect form data
+      const formData = {};
+      const formElements = form.elements;
+      for (let element of formElements) {
+        if (element.name && element.type !== 'submit') {
+          formData[element.name] = element.value.trim();
+        }
+      }
+
+      // Store data in Firebase
+      const formType = 'students'; // Changed to always use 'students' collection
+      storeFormData(formType, formData).then(success => {
+        if (success) {
+          alert("Form submitted and stored successfully!");
+          form.reset();
+        } else {
+          alert("Error storing form data. Please try again.");
+        }
+      });
+
+      return false;
+    }
+
+    document.getElementById("studentForm").addEventListener("click", (e) => {
+      if (!e.target.closest("form")) showForm('course');
+    });
+
+    document.getElementById("courseForm").addEventListener("click", (e) => {
+      if (!e.target.closest("form")) showForm('student');
+    });
+  </script>
+
+</body>
+</html>

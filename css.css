@@ -1,0 +1,49 @@
+/* Midnight Theme CSS */
+body {
+    background-color: #0b0c1a;
+    color: #e0e0e0;
+    font-family: 'Poppins', sans-serif;
+    scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+  }
+  
+  section {
+    padding: 4rem 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  
+  .card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    box-shadow: 0 0 20px rgba(138, 180, 248, 0.1);
+    padding: 2rem;
+    max-width: 400px;
+    text-align: center;
+  }
+  
+  .card h2 {
+    color: #8ab4f8;
+    margin-bottom: 1rem;
+  }
+  
+  .card p {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+  
+  .card a {
+    color: #8ab4f8;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .card a:hover {
+    color: #c084fc;
+    text-shadow: 0 0 10px #c084fc;
+  }
