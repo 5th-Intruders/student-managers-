@@ -376,8 +376,15 @@
             
             // State variables
             let state = {
-                currentStudent: null
+                currentStudent: null,
+                lastVisibleDoc: {
+                    demo: null,
+                    paid: null,
+                    unpaid: null
+                }
             };
+
+            const ITEMS_PER_PAGE = 15;
             
             // Initialize event listeners
             function initEvents() {
@@ -637,8 +644,10 @@
             }
             
             // Load students data
-            function loadStudents() {
-                clearTables();
+            function loadStudents(isLoadMore = false) {
+                if (!isLoadMore) {
+                    clearTables();
+                }
                 checkNotifications();
                 
                 // Group students by status
@@ -647,60 +656,90 @@
                     paid: [],
                     unpaid: []
                 };
-                
-                studentsRef.get().then(snapshot => {
-                    snapshot.forEach(doc => {
+
+                // Create three separate queries for each status
+                const loadData = async () => {
+                    // Demo students query
+                    let demoQuery = studentsRef.where('status', '==', 'demo').limit(ITEMS_PER_PAGE);
+                    if (isLoadMore && state.lastVisibleDoc.demo) {
+                        demoQuery = demoQuery.startAfter(state.lastVisibleDoc.demo);
+                    }
+
+                    // Paid students query
+                    let paidQuery = studentsRef.where('status', '==', 'paid').limit(ITEMS_PER_PAGE);
+                    if (isLoadMore && state.lastVisibleDoc.paid) {
+                        paidQuery = paidQuery.startAfter(state.lastVisibleDoc.paid);
+                    }
+
+                    // Unpaid students query
+                    let unpaidQuery = studentsRef.where('status', '==', 'unpaid').limit(ITEMS_PER_PAGE);
+                    if (isLoadMore && state.lastVisibleDoc.unpaid) {
+                        unpaidQuery = unpaidQuery.startAfter(state.lastVisibleDoc.unpaid);
+                    }
+
+                    // Execute all queries
+                    const [demoSnapshot, paidSnapshot, unpaidSnapshot] = await Promise.all([
+                        demoQuery.get(),
+                        paidQuery.get(),
+                        unpaidQuery.get()
+                    ]);
+
+                    // Update last visible documents
+                    state.lastVisibleDoc.demo = demoSnapshot.docs[demoSnapshot.docs.length - 1];
+                    state.lastVisibleDoc.paid = paidSnapshot.docs[paidSnapshot.docs.length - 1];
+                    state.lastVisibleDoc.unpaid = unpaidSnapshot.docs[unpaidSnapshot.docs.length - 1];
+
+                    // Process snapshots
+                    demoSnapshot.forEach(doc => {
                         const student = {...doc.data(), id: doc.id};
-                        const updatedStudent = updateStatusIfNeeded(student, doc.id);
-                        
-                        if (updatedStudent.status === "demo") {
-                            students.demo.push(updatedStudent);
-                        } else if (updatedStudent.status === "paid") {
-                            students.paid.push(updatedStudent);
-                        } else if (updatedStudent.status === "unpaid") {
-                            students.unpaid.push(updatedStudent);
-                        }
+                        students.demo.push(updateStatusIfNeeded(student, doc.id));
                     });
-                    
+
+                    paidSnapshot.forEach(doc => {
+                        const student = {...doc.data(), id: doc.id};
+                        students.paid.push(updateStatusIfNeeded(student, doc.id));
+                    });
+
+                    unpaidSnapshot.forEach(doc => {
+                        const student = {...doc.data(), id: doc.id};
+                        students.unpaid.push(updateStatusIfNeeded(student, doc.id));
+                    });
+
                     // Add students to tables with animated rows
-                    students.demo.forEach((student, index) => addStudentToTable(student, "demo", index));
-                    students.paid.forEach((student, index) => addStudentToTable(student, "paid", index));
-                    students.unpaid.forEach((student, index) => addStudentToTable(student, "unpaid", index));
-                    
-                    // Setup collapse functionality for each table
-                    setupTableCollapse(el.tables.demo, students.demo, "demo");
-                    setupTableCollapse(el.tables.paid, students.paid, "paid");
-                    setupTableCollapse(el.tables.unpaid, students.unpaid, "unpaid");
-                    
-                }).catch(error => {
+                    const startIndex = isLoadMore ? el.tables.demo.children.length : 0;
+                    students.demo.forEach((student, index) => addStudentToTable(student, "demo", startIndex + index));
+                    students.paid.forEach((student, index) => addStudentToTable(student, "paid", startIndex + index));
+                    students.unpaid.forEach((student, index) => addStudentToTable(student, "unpaid", startIndex + index));
+
+                    // Setup or update table collapse buttons
+                    if (!isLoadMore) {
+                        setupTableCollapse(el.tables.demo, demoSnapshot, "demo");
+                        setupTableCollapse(el.tables.paid, paidSnapshot, "paid");
+                        setupTableCollapse(el.tables.unpaid, unpaidSnapshot, "unpaid");
+                    }
+                };
+
+                loadData().catch(error => {
                     console.error("Error loading students:", error);
                 });
             }
-            
+
             // Add this new function to handle table collapse
-            function setupTableCollapse(tableBody, students, tableType) {
-                const MAX_VISIBLE_ROWS = 15;
+            function setupTableCollapse(tableBody, snapshot, tableType) {
                 const wrapper = tableBody.closest('.table-section');
+                const existingButton = wrapper.querySelector('.toggle-button');
                 
-                if (students.length > MAX_VISIBLE_ROWS) {
+                if (existingButton) {
+                    existingButton.remove();
+                }
+
+                if (snapshot.size >= ITEMS_PER_PAGE) {
                     const toggleButton = document.createElement('button');
                     toggleButton.className = 'toggle-button';
-                    toggleButton.textContent = 'Show More';
-                    
-                    // Hide rows beyond the limit
-                    Array.from(tableBody.children)
-                        .slice(MAX_VISIBLE_ROWS)
-                        .forEach(row => row.classList.add('hidden-row'));
+                    toggleButton.textContent = 'Load More';
                     
                     toggleButton.addEventListener('click', () => {
-                        const hiddenRows = tableBody.getElementsByClassName('hidden-row');
-                        const isExpanded = toggleButton.textContent === 'Show Less';
-                        
-                        Array.from(hiddenRows).forEach(row => {
-                            row.style.display = isExpanded ? 'none' : 'table-row';
-                        });
-                        
-                        toggleButton.textContent = isExpanded ? 'Show More' : 'Show Less';
+                        loadStudents(true);
                     });
                     
                     wrapper.appendChild(toggleButton);
