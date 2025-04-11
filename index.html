@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.js"></script>
-     <meta property="og:title" content="Student Management App">
+    <meta property="og:title" content="Student Management App">
   <meta property="og:description" content="Manage form Student analysis with ease with it.">
   <meta property="og:image" content="ChatGPT Image Apr 11, 2025, 09_03_51 AM.png">
   <meta property="og:url" content="https://student-managers.vercel.app/">
@@ -564,17 +564,22 @@
                 
                 querySnapshot.forEach(doc => {
                     const studentData = doc.data();
-                    if (studentData.registrationDate) {
-                        // Convert Firebase timestamp to JavaScript Date
-                        const registrationDate = studentData.registrationDate.toDate();
+                    if (studentData.createdAt) {  // Using createdAt server timestamp
+                        // Convert Firebase server timestamp to JavaScript Date
+                        const creationDate = studentData.createdAt.toDate();
                         
-                        if (registrationDate < twoDaysAgo) {
+                        if (creationDate < twoDaysAgo) {
                             overdueCount++;
                             console.log(`Student ${doc.id} has exceeded the 2-day demo period`);
                             
                             // Optional: Update the student status or take other actions
-                            // doc.ref.update({ status: 'expired' });
+                            // doc.ref.update({ 
+                            //     status: 'expired',
+                            //     statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            // });
                         }
+                    } else {
+                        console.warn(`Student ${doc.id} missing createdAt timestamp`);
                     }
                 });
                 
@@ -605,8 +610,14 @@
                 for (const doc of querySnapshot.docs) {
                     const studentData = doc.data();
                     if (studentData.lastPaidDate) {
-                        // Convert Firebase timestamp to JavaScript Date
-                        const lastPaidDate = studentData.lastPaidDate.toDate();
+                        // Convert string date to JavaScript Date object
+                        const lastPaidDate = new Date(studentData.lastPaidDate);
+                        
+                        // Check if it's a valid date
+                        if (isNaN(lastPaidDate.getTime())) {
+                            console.warn(`Invalid date format for student ${doc.id}`);
+                            continue;
+                        }
                         
                         if (lastPaidDate < thirtyOneDaysAgo) {
                             expiredCount++;
@@ -620,7 +631,8 @@
                             updatedStudents.push({
                                 id: doc.id,
                                 name: studentData.name || 'Unknown',
-                                email: studentData.email || 'No email'
+                                email: studentData.email || 'No email',
+                                lastPaidDate: lastPaidDate.toLocaleDateString()
                             });
                         }
                     }
@@ -628,8 +640,6 @@
                 
                 if (expiredCount > 0) {
                     addNotification(`${expiredCount} student(s) changed from paid to unpaid status`, 'alert');
-                    
-                    // Log details of updated students
                     console.log("Students updated to unpaid status:", updatedStudents);
                 }
                 
