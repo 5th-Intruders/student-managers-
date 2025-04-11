@@ -142,6 +142,9 @@
       const db = firebase.firestore();
       let filters = [];
       let currentStudents = []; // Store current results for edit functionality
+      let lastVisible = null; // Track last document for pagination
+      let isLoading = false; // Track loading state
+      const DOCS_PER_PAGE = 10; // Number of documents per fetch
       
       // DOM Elements
       const errorMessage = document.getElementById('errorMessage');
@@ -173,6 +176,15 @@
       editForm.addEventListener('submit', function(e) {
         e.preventDefault();
         saveChanges();
+      });
+      
+      // Add scroll event listener
+      window.addEventListener('scroll', () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
+          if (!isLoading && lastVisible) {
+            fetchResults(true);
+          }
+        }
       });
       
       // Functions
@@ -244,27 +256,42 @@
       // Make removeFilter globally accessible for onclick event
       window.removeFilter = removeFilter;
       
-      async function fetchResults() {
-        showLoading(true);
-        errorMessage.style.display = 'none';
+      async function fetchResults(loadMore = false) {
+        if (isLoading) return;
+        isLoading = true;
+        
+        if (!loadMore) {
+          showLoading(true);
+          errorMessage.style.display = 'none';
+          currentStudents = [];
+          lastVisible = null;
+        }
         
         try {
           let ref = db.collection("students");
           
           // Apply filters
           if (filters.length > 0) {
-            const snapshot = await ref.get();
-            let allStudents = snapshot.docs.map(doc => ({
+            let query = ref.limit(DOCS_PER_PAGE);
+            if (lastVisible && loadMore) {
+              query = query.startAfter(lastVisible);
+            }
+            
+            const snapshot = await query.get();
+            
+            // Update lastVisible
+            lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+            
+            const newStudents = snapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data()
             }));
             
-            // Client-side filtering with arithmetic operations
-            currentStudents = allStudents.filter(student => {
+            // Filter the results
+            const filteredStudents = newStudents.filter(student => {
               return filters.every(filter => {
                 const value = filter.value.trim();
                 
-                // Handle arithmetic operations for numeric fields
                 if (filter.field === 'fee') {
                   const studentFee = Number(student[filter.field]);
                   
@@ -297,45 +324,82 @@
                   return studentFee === Number(value);
                 }
                 
-                // Handle string comparison (case-insensitive) for other fields
                 if (student[filter.field] !== undefined) {
                   return student[filter.field].toLowerCase().includes(value.toLowerCase());
                 }
                 return false;
               });
             });
+            
+            currentStudents = loadMore ? [...currentStudents, ...filteredStudents] : filteredStudents;
           } else {
-            // No filters, get all documents
-            const snapshot = await ref.get();
-            currentStudents = snapshot.docs.map(doc => ({
+            // No filters, get paginated documents
+            let query = ref.limit(DOCS_PER_PAGE);
+            if (lastVisible && loadMore) {
+              query = query.startAfter(lastVisible);
+            }
+            
+            const snapshot = await query.get();
+            
+            // Update lastVisible
+            lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+            
+            const newStudents = snapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data()
             }));
+            
+            currentStudents = loadMore ? [...currentStudents, ...newStudents] : newStudents;
           }
           
-          renderResults(currentStudents);
+          renderResults(currentStudents, loadMore);
+          
+          // Show/hide load more indicator
+          const loadMoreIndicator = document.getElementById('loadMoreIndicator') || createLoadMoreIndicator();
+          loadMoreIndicator.style.display = lastVisible ? 'block' : 'none';
+          
         } catch (err) {
           console.error("Firestore query error:", err);
           showError("Error fetching data: " + err.message);
         } finally {
-          showLoading(false);
+          isLoading = false;
+          if (!loadMore) {
+            showLoading(false);
+          }
         }
       }
       
-      function renderResults(data) {
+      function createLoadMoreIndicator() {
+        const div = document.createElement('div');
+        div.id = 'loadMoreIndicator';
+        div.className = 'load-more-indicator';
+        div.innerHTML = '<div class="spinner"></div>';
+        document.querySelector('.table-container').appendChild(div);
+        return div;
+      }
+      
+      function renderResults(data, appendData = false) {
         const table = document.getElementById('resultTable');
         const count = document.getElementById('resultCount');
-        table.innerHTML = '';
+        
+        if (!appendData) {
+          table.innerHTML = '';
+        }
+        
         count.innerText = `Total: ${data.length} results`;
         
-        if (data.length === 0) {
+        if (data.length === 0 && !appendData) {
           const row = document.createElement('tr');
           row.innerHTML = `<td colspan="8" style="text-align: center;">No results found</td>`;
           table.appendChild(row);
           return;
         }
         
-        data.forEach((student, index) => {
+        // Only render new data when appending
+        const startIndex = appendData ? table.children.length : 0;
+        const newData = data.slice(startIndex);
+        
+        newData.forEach((student, index) => {
           const row = document.createElement('tr');
           const statusClass = student.status === 'paid' ? 'status-paid' : 'status-unpaid';
           
@@ -454,6 +518,30 @@
       console.error("Firebase initialization error:", err);
       showError("Error initializing Firebase: " + err.message);
     }
+    
+    // Add styles for the load more indicator
+    const style = document.createElement('style');
+    style.textContent = `
+      .load-more-indicator {
+        text-align: center;
+        padding: 20px;
+        display: none;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
