@@ -225,116 +225,106 @@
   </div>
 
   <!-- Add Firebase CDN before closing body tag -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script type="module">
+import firebaseConfig from './firebaseConfg.js';
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      // Replace with your Firebase config
-      apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
-              authDomain: "admin-database-ca73d.firebaseapp.com",
-              projectId: "admin-database-ca73d",
-              storageBucket: "admin-database-ca73d.firebasestorage.app",
-              messagingSenderId: "796828178511",
-              appId: "1:796828178511:web:1695f31e505d391d38723a"
+let currentForm = 'student';
+
+// Function to store form data
+async function storeFormData(formType, formData) {
+  try {
+    // Get selected subjects/courses
+    const checkboxes = document.querySelectorAll(`#${currentForm}Form input[name="subject"]:checked`);
+    const selectedItems = Array.from(checkboxes).map(cb => cb.parentElement.textContent.trim());
+
+    // Format the data according to the required structure
+    const formattedData = {
+      name: formData.name,
+      timing: formData.timing,
+      fee: parseInt(formData.fee),
+      subject: selectedItems,
+      "last-paid": "",
+      "contact-number": formData["contact-number"],
+      status: "demo"
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    let currentForm = 'student';
-
-    // Function to store form data
-    async function storeFormData(formType, formData) {
-      try {
-        // Get selected subjects/courses
-        const checkboxes = document.querySelectorAll(`#${currentForm}Form input[name="subject"]:checked`);
-        const selectedItems = Array.from(checkboxes).map(cb => cb.parentElement.textContent.trim());
-
-        // Format the data according to the required structure
-        const formattedData = {
-          name: formData.name,
-          timing: formData.timing,
-          fee: parseInt(formData.fee),
-          subject: selectedItems,
-          "last-paid": "",
-          "contact-number": formData["contact-number"],
-          status: "demo"
-        };
-
-        // Add class field only for students
-        if (formType === 'students') {
-          formattedData.class = parseInt(formData.class);
-        }
-
-        const docRef = await db.collection(formType).add(formattedData);
-        console.log("Document written with ID: ", docRef.id);
-        return true;
-      } catch (error) {
-        console.error("Error adding document: ", error);
-        return false;
-      }
+    // Add class field only for students
+    if (formType === 'students') {
+      formattedData.class = parseInt(formData.class);
     }
 
-    function showForm(form) {
-      if (form === currentForm) return;
-      const student = document.getElementById("studentForm");
-      const course = document.getElementById("courseForm");
-      if (form === "student") {
-        student.classList.remove("hidden");
-        student.classList.add("visible");
-        course.classList.remove("visible");
-        course.classList.add("hidden");
-      } else {
-        course.classList.remove("hidden");
-        course.classList.add("visible");
-        student.classList.remove("visible");
-        student.classList.add("hidden");
-      }
-      currentForm = form;
-    }
+    const docRef = await db.collection(formType).add(formattedData);
+    console.log("Document written with ID: ", docRef.id);
+    return true;
+  } catch (error) {
+    console.error("Error adding document: ", error);
+    return false;
+  }
+}
 
-    function validateForm(form) {
-      const inputs = form.querySelectorAll("input[required], select[required]");
-      for (let input of inputs) {
-        if (!input.value.trim()) {
-          alert("Please fill all required fields.");
-          return false;
-        }
-      }
+function showForm(form) {
+  if (form === currentForm) return;
+  const student = document.getElementById("studentForm");
+  const course = document.getElementById("courseForm");
+  if (form === "student") {
+    student.classList.remove("hidden");
+    student.classList.add("visible");
+    course.classList.remove("visible");
+    course.classList.add("hidden");
+  } else {
+    course.classList.remove("hidden");
+    course.classList.add("visible");
+    student.classList.remove("visible");
+    student.classList.add("hidden");
+  }
+  currentForm = form;
+}
 
-      // Collect form data
-      const formData = {};
-      const formElements = form.elements;
-      for (let element of formElements) {
-        if (element.name && element.type !== 'submit') {
-          formData[element.name] = element.value.trim();
-        }
-      }
-
-      // Store data in Firebase
-      const formType = 'students'; // Changed to always use 'students' collection
-      storeFormData(formType, formData).then(success => {
-        if (success) {
-          alert("Form submitted and stored successfully!");
-          form.reset();
-        } else {
-          alert("Error storing form data. Please try again.");
-        }
-      });
-
+function validateForm(form) {
+  const inputs = form.querySelectorAll("input[required], select[required]");
+  for (let input of inputs) {
+    if (!input.value.trim()) {
+      alert("Please fill all required fields.");
       return false;
     }
+  }
 
-    document.getElementById("studentForm").addEventListener("click", (e) => {
-      if (!e.target.closest("form")) showForm('course');
-    });
+  // Collect form data
+  const formData = {};
+  const formElements = form.elements;
+  for (let element of formElements) {
+    if (element.name && element.type !== 'submit') {
+      formData[element.name] = element.value.trim();
+    }
+  }
 
-    document.getElementById("courseForm").addEventListener("click", (e) => {
-      if (!e.target.closest("form")) showForm('student');
-    });
+  // Store data in Firebase
+  const formType = 'students'; // Changed to always use 'students' collection
+  storeFormData(formType, formData).then(success => {
+    if (success) {
+      alert("Form submitted and stored successfully!");
+      form.reset();
+    } else {
+      alert("Error storing form data. Please try again.");
+    }
+  });
+
+  return false;
+}
+
+document.getElementById("studentForm").addEventListener("click", (e) => {
+  if (!e.target.closest("form")) showForm('course');
+});
+
+document.getElementById("courseForm").addEventListener("click", (e) => {
+  if (!e.target.closest("form")) showForm('student');
+});
+
+window.storeFormData = storeFormData;
+window.showForm = showForm;
+window.validateForm = validateForm;
   </script>
 
 </body>
