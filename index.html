@@ -292,7 +292,7 @@
     <header>
         <div class="logo">
             <img src="https://i.postimg.cc/KvHNjCKD/gmail-logo.jpg" alt="Logo">
-            <span>YourApp</span>
+            <span>Domo Firebase Manager</span>
         </div>
         <div class="nav-icons">
             <div class="icon" onclick="loadContent('documentantion.html')" title="Documentation">
@@ -350,17 +350,10 @@
             <button onclick="loginWithEmailPassword()">Login</button>
         </div>
     </div>
-
-    <script>
-        // Initialize Firebase with your config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCQNpkj3EZtF6KNiFcwNnQU3Ez0f7Ocr4U",
-            authDomain: "admin-database-ca73d.firebaseapp.com",
-            projectId: "admin-database-ca73d",
-            storageBucket: "admin-database-ca73d.firebasestorage.app",
-            messagingSenderId: "796828178511",
-            appId: "1:796828178511:web:1695f31e505d391d38723a"
-        };
+    <script type="module">
+       import firebaseConfig from './firebaseConfg.js';
+       // Initialize Firebase with your config
+        
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
@@ -368,34 +361,27 @@
         let notifications = [];
 
         // Function to load content in the iframe
-        function loadContent(page) {
+        window.loadContent = function(page) {
             document.getElementById('contentFrame').src = page;
         }
 
         // Toggle login modal
-        function toggleLoginModal() {
+        window.toggleLoginModal = function() {
             const modal = document.getElementById('loginModal');
-            if (modal.style.display === 'block') {
-                modal.style.display = 'none';
-            } else {
-                modal.style.display = 'block';
-            }
+            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
         }
 
         // Toggle notifications panel
-        function toggleNotifications() {
+        window.toggleNotifications = function() {
             const panel = document.querySelector('.notification-panel');
+            panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
             if (panel.style.display === 'block') {
-                panel.style.display = 'none';
-            } else {
-                panel.style.display = 'block';
-                // Mark notifications as read when opened
                 document.querySelector('.notification-dot').style.display = 'none';
             }
         }
 
         // Clear all notifications
-        function clearNotifications(event) {
+        window.clearNotifications = function(event) {
             event.stopPropagation();
             notifications = [];
             document.getElementById('notification-list').innerHTML = '';
@@ -610,13 +596,13 @@
                 for (const doc of querySnapshot.docs) {
                     const studentData = doc.data();
                     if (studentData.lastPaidDate) {
-                        // Convert string date to JavaScript Date object
-                        const lastPaidDate = new Date(studentData.lastPaidDate);
-                        
-                        // Check if it's a valid date
-                        if (isNaN(lastPaidDate.getTime())) {
-                            console.warn(`Invalid date format for student ${doc.id}`);
-                            continue;
+                        let lastPaidDate;
+                        if (typeof studentData.lastPaidDate.toDate === 'function') {
+                            // Firestore Timestamp
+                            lastPaidDate = studentData.lastPaidDate.toDate();
+                        } else {
+                            // String or Date
+                            lastPaidDate = new Date(studentData.lastPaidDate);
                         }
                         
                         if (lastPaidDate < thirtyOneDaysAgo) {
@@ -691,6 +677,64 @@
                 notificationPanel.style.display = 'none';
             }
         });
+    </script>
+    <script>
+    (function() {
+        // Only enable on touch devices and small screens
+        if (!('ontouchstart' in window) || window.innerWidth > 1024) return;
+
+        // List of pages in swipe order
+        const pages = [
+            'documentantion.html',
+            'anaylisis.html',
+            'quiryfinal.html',
+            'search.html',
+            'form2.html',
+            'store.html'
+        ];
+
+        // Helper to get current page index
+        function getCurrentPageIndex() {
+            const src = document.getElementById('contentFrame').src;
+            for (let i = 0; i < pages.length; i++) {
+                if (src.endsWith(pages[i])) return i;
+            }
+            return 0; // default to first
+        }
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const minSwipeDistance = 50; // px
+
+        function handleTouchStart(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }
+        function handleTouchEnd(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }
+        function handleSwipe() {
+            const dx = touchEndX - touchStartX;
+            if (Math.abs(dx) < minSwipeDistance) return;
+            let idx = getCurrentPageIndex();
+            if (dx < 0 && idx < pages.length - 1) {
+                // Swipe left: next page
+                window.loadContent(pages[idx + 1]);
+            } else if (dx > 0 && idx > 0) {
+                // Swipe right: previous page
+                window.loadContent(pages[idx - 1]);
+            }
+        }
+
+        // Attach to the iframe overlay (so it works even if iframe is blurred)
+        const frame = document.getElementById('contentFrame');
+        frame.addEventListener('touchstart', handleTouchStart, {passive: true});
+        frame.addEventListener('touchend', handleTouchEnd, {passive: true});
+
+        // Also attach to body for login blur overlay
+        document.body.addEventListener('touchstart', handleTouchStart, {passive: true});
+        document.body.addEventListener('touchend', handleTouchEnd, {passive: true});
+    })();
     </script>
 </body>
 </html>
